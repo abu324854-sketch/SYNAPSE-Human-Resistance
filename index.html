@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYNAPSE: Human Resistance vs A.I.</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #00ffff;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #game-ui {
+            max-width: 850px;
+            margin: auto;
+            background: #111827;
+            border: 2px solid #ff0055;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.4);
+        }
+
+        h1 { margin-bottom: 5px; color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.7); }
+        p { color: #9ca3af; font-size: 14px; margin-bottom: 15px; }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #1f2937;
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border: 1px solid #374151;
+            font-size: 16px;
+        }
+
+        canvas {
+            background: linear-gradient(to right, #030712, #111827, #1f2937);
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            display: block;
+            margin: auto;
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #ff0055;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #00ffff;
+            color: #030712;
+            box-shadow: 0 0 20px #00ffff;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-ui">
+        <h1>SYNAPSE: HUMAN RESISTANCE</h1>
+        <p>Insoniyatning so'nggi bazasini sun'iy intellekt (NEXUS) dronlaridan himoya qiling!</p>
+        
+        <div class="stats-bar">
+            <div>⚡ Energiya: <span id="energy">100</span></div>
+            <div>❤️ Baza Himoyasi: <span id="base-health">100</span>%</div>
+            <div>🤖 Yo'q qilinganlar: <span id="score">0</span></div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+        </div>
+
+        <div class="controls">
+            <button onclick="spawnUnit('soldier')">⚔️️ Oddiy Askar (Narx: 20⚡)</button>
+            <button onclick="spawnUnit('hacker')">💻 Kiber-Haker (Narx: 35⚡)</button>
+            <button onclick="spawnUnit('mecha')">🦾 Mecha Tank (Narx: 60⚡)</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let energy = 100;
+        let baseHealth = 100;
+        let score = 0;
+
+        let humanUnits = [];
+        let aiUnits = [];
+
+        // Har soniyada energiya yig'ish
+        setInterval(() => {
+            if (energy < 150) energy += 5;
+            updateUI();
+        }, 1000);
+
+        // Sun'iy intellekt bazasidan dushmanlar chiqishi
+        setInterval(() => {
+            aiUnits.push({
+                x: canvas.width - 40,
+                y: Math.random() * (canvas.height - 60) + 20,
+                speed: Math.random() * 1.5 + 1,
+                health: 40,
+                maxHealth: 40,
+                type: Math.random() > 0.7 ? 'heavy' : 'drone'
+            });
+        }, 2200);
+
+        function updateUI() {
+            document.getElementById('energy').innerText = energy;
+            document.getElementById('base-health').innerText = baseHealth;
+            document.getElementById('score').innerText = score;
+        }
+
+        function spawnUnit(type) {
+            let cost = 0;
+            if (type === 'soldier') cost = 20;
+            if (type === 'hacker') cost = 35;
+            if (type === 'mecha') cost = 60;
+
+            if (energy >= cost) {
+                energy -= cost;
+                humanUnits.push({
+                    x: 40,
+                    y: Math.random() * (canvas.height - 60) + 20,
+                    speed: type === 'mecha' ? 1 : 2,
+                    health: type === 'mecha' ? 120 : 50,
+                    maxHealth: type === 'mecha' ? 120 : 50,
+                    power: type === 'hacker' ? 0.4 : (type === 'mecha' ? 2.5 : 1.2),
+                    type: type
+                });
+                updateUI();
+            }
+        }
+
+        // Asosiy o'yin sikli
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Inson bazasi (Chapda - Ko'k)
+            ctx.fillStyle = '#00ffff';
+            ctx.fillRect(10, 40, 15, canvas.height - 80);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '11px Courier New';
+            ctx.fillText("BAZA", 1, 30);
+
+            // 2. S.I. Nexus bazasi (O'ngda - Qizil)
+            ctx.fillStyle = '#ff0055';
+            ctx.fillRect(canvas.width - 25, 40, 15, canvas.height - 80);
+            ctx.fillText("NEXUS", canvas.width - 32, 30);
+
+            // 3. Inson qo'shinlarini boshqarish
+            for (let i = humanUnits.length - 1; i >= 0; i--) {
+                let u = humanUnits[i];
+                u.x += u.speed;
+                
+                // Odam birligini chizish
+                ctx.fillStyle = u.type === 'mecha' ? '#10b981' : (u.type === 'hacker' ? '#a855f7' : '#3b82f6');
+                ctx.fillRect(u.x, u.y, u.type === 'mecha' ? 24 : 16, 16);
+
+                // Dushmanlar bilan to'qnashuvi
+                for (let j = aiUnits.length - 1; j >= 0; j--) {
+                    let a = aiUnits[j];
+                    if (Math.abs(u.x - a.x) < 20 && Math.abs(u.y - a.y) < 20) {
+                        a.health -= u.power;
+                        u.health -= 0.8;
+                        if (a.health <= 0) {
+                            aiUnits.splice(j, 1);
+                            score += 15;
+                        }
+                    }
+                }
+
+                // Agar o'lsa yoki S.I. bazasiga yetib borsa
+                if (u.health <= 0 || u.x > canvas.width - 30) {
+                    humanUnits.splice(i, 1);
+                }
+            }
+
+            // 4. S.I. dushmanlarini boshqarish
+            for (let j = aiUnits.length - 1; j >= 0; j--) {
+                let a = aiUnits[j];
+                a.x -= a.speed;
+
+                // Dushmanni chizish
+                ctx.fillStyle = a.type === 'heavy' ? '#ef4444' : '#f59e0b';
+                ctx.fillRect(a.x, a.y, 18, 16);
+
+                // Agar dushman inson bazasiga yetib kelsa
+                if (a.x <= 25) {
+                    baseHealth -= 6;
+                    aiUnits.splice(j, 1);
+                    if (baseHealth <= 0) {
+                        alert("MAG'LUBIYAT! Sun'iy intellekt (NEXUS) insoniyatni egalladi.");
+                        baseHealth = 100;
+                        score = 0;
+                        humanUnits = [];
+                        aiUnits = [];
+                    }
+                }
+            }
+
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
