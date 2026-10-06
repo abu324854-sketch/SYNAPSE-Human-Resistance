@@ -3,132 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYNAPSE: Human Resistance vs A.I.</title>
+    <title>SYNAPSE 3D: Human vs Robots</title>
     <style>
         body {
-            background-color: #0b0f19;
+            margin: 0;
+            padding: 0;
+            background-color: #050814;
             color: #00ffff;
             font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
             text-align: center;
-            margin: 0;
-            padding: 20px;
         }
 
-        #game-ui {
-            max-width: 850px;
-            margin: auto;
-            background: #111827;
+        #ui-layer {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(17, 24, 39, 0.85);
             border: 2px solid #ff0055;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 25px rgba(255, 0, 85, 0.4);
-        }
-
-        h1 { margin-bottom: 5px; color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.7); }
-        p { color: #9ca3af; font-size: 14px; margin-bottom: 15px; }
-
-        .stats-bar {
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+            width: 700px;
             display: flex;
             justify-content: space-around;
-            background: #1f2937;
-            padding: 12px;
-            border-radius: 5px;
             font-weight: bold;
-            margin-bottom: 15px;
-            border: 1px solid #374151;
-            font-size: 16px;
         }
 
-        canvas {
-            background: linear-gradient(to right, #030712, #111827, #1f2937);
-            border: 2px solid #00ffff;
-            border-radius: 5px;
-            display: block;
-            margin: auto;
-            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
-        }
-
-        .controls {
-            margin-top: 15px;
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
             display: flex;
-            justify-content: center;
             gap: 15px;
-            flex-wrap: wrap;
         }
 
         button {
             background: #ff0055;
             color: white;
             border: none;
-            padding: 12px 18px;
+            padding: 12px 20px;
             font-family: 'Courier New', Courier, monospace;
             font-weight: bold;
             border-radius: 5px;
             cursor: pointer;
             transition: 0.2s;
-            box-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.6);
             font-size: 14px;
         }
 
         button:hover {
             background: #00ffff;
-            color: #030712;
+            color: #050814;
             box-shadow: 0 0 20px #00ffff;
             transform: scale(1.05);
         }
     </style>
+    <!-- Three.js Kutubxonasi 3D uchun -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="game-ui">
-        <h1>SYNAPSE: HUMAN RESISTANCE</h1>
-        <p>Insoniyatning so'nggi bazasini sun'iy intellekt (NEXUS) dronlaridan himoya qiling!</p>
-        
-        <div class="stats-bar">
-            <div>⚡ Energiya: <span id="energy">100</span></div>
-            <div>❤️ Baza Himoyasi: <span id="base-health">100</span>%</div>
-            <div>🤖 Yo'q qilinganlar: <span id="score">0</span></div>
-        </div>
+    <div id="ui-layer">
+        <div>⚡ Energiya: <span id="energy">100</span></div>
+        <div>❤️ Baza: <span id="base-health">100</span>%</div>
+        <div>🤖 Robotlar yo'q qilindi: <span id="score">0</span></div>
+    </div>
 
-        <div class="canvas-container">
-            <canvas id="gameCanvas" width="800" height="400"></canvas>
-        </div>
-
-        <div class="controls">
-            <button onclick="spawnUnit('soldier')">⚔️️ Oddiy Askar (Narx: 20⚡)</button>
-            <button onclick="spawnUnit('hacker')">💻 Kiber-Haker (Narx: 35⚡)</button>
-            <button onclick="spawnUnit('mecha')">🦾 Mecha Tank (Narx: 60⚡)</button>
-        </div>
+    <div id="controls">
+        <button onclick="spawnHuman()">⚔ 3D Odam Jangchi (Narx: 20⚡)</button>
+        <button onclick="spawnMecha()">🦾 3D Katta Ekzoskelet (Narx: 50⚡)</button>
     </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        // --- 1. SAHNA VA DUNYO (Three.js) ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x030712);
+        scene.fog = new THREE.Fog(0x030712, 20, 70);
 
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 15, 25);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Yoritish
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0x00ffff, 1, 50);
+        pointLight.position.set(0, 10, 0);
+        scene.add(pointLight);
+
+        // Jang maydoni (Platforma)
+        const arenaGeo = new THREE.BoxGeometry(60, 0.5, 12);
+        const arenaMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 });
+        const arena = new THREE.Mesh(arenaGeo, arenaMat);
+        arena.position.y = -0.5;
+        scene.add(arena);
+
+        // Grid chiziqlari
+        const grid = new THREE.GridHelper(60, 30, 0x00ffff, 0x1f2937);
+        grid.position.y = -0.2;
+        scene.add(grid);
+
+        // --- 2. O'YIN O'ZGARUVCHILARI ---
         let energy = 100;
         let baseHealth = 100;
         let score = 0;
 
-        let humanUnits = [];
-        let aiUnits = [];
+        let humans = [];
+        let robots = [];
 
-        // Har soniyada energiya yig'ish
+        // Energiya yig'ish
         setInterval(() => {
             if (energy < 150) energy += 5;
             updateUI();
         }, 1000);
 
-        // Sun'iy intellekt bazasidan dushmanlar chiqishi
+        // S.I. Robotlarini chiqarish (O'ng tomondan keladi)
         setInterval(() => {
-            aiUnits.push({
-                x: canvas.width - 40,
-                y: Math.random() * (canvas.height - 60) + 20,
-                speed: Math.random() * 1.5 + 1,
-                health: 40,
-                maxHealth: 40,
-                type: Math.random() > 0.7 ? 'heavy' : 'drone'
-            });
-        }, 2200);
+            spawnRobot();
+        }, 3000);
 
         function updateUI() {
             document.getElementById('energy').innerText = energy;
@@ -136,99 +138,128 @@
             document.getElementById('score').innerText = score;
         }
 
-        function spawnUnit(type) {
-            let cost = 0;
-            if (type === 'soldier') cost = 20;
-            if (type === 'hacker') cost = 35;
-            if (type === 'mecha') cost = 60;
+        // --- 3. 3D MODELLARNI YARATISH ---
+        
+        // 3D Odam (Ko'k rangli, bosh va tana qismlaridan iborat)
+        function spawnHuman() {
+            if (energy < 20) return;
+            energy -= 20;
+            updateUI();
 
-            if (energy >= cost) {
-                energy -= cost;
-                humanUnits.push({
-                    x: 40,
-                    y: Math.random() * (canvas.height - 60) + 20,
-                    speed: type === 'mecha' ? 1 : 2,
-                    health: type === 'mecha' ? 120 : 50,
-                    maxHealth: type === 'mecha' ? 120 : 50,
-                    power: type === 'hacker' ? 0.4 : (type === 'mecha' ? 2.5 : 1.2),
-                    type: type
-                });
-                updateUI();
-            }
+            const group = new THREE.Group();
+            
+            // Tana
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.5 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.5), bodyMat);
+            body.position.y = 0.6;
+            group.add(body);
+
+            // Bosh
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0xffdbac }));
+            head.position.y = 1.4;
+            group.add(head);
+
+            group.position.set(-25, 0, (Math.random() - 0.5) * 8);
+            scene.add(group);
+
+            humans.push({ mesh: group, speed: 0.08, health: 50, power: 0.6 });
         }
 
-        // Asosiy o'yin sikli
-        function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 3D Katta Ekzoskelet Odam
+        function spawnMecha() {
+            if (energy < 50) return;
+            energy -= 50;
+            updateUI();
 
-            // 1. Inson bazasi (Chapda - Ko'k)
-            ctx.fillStyle = '#00ffff';
-            ctx.fillRect(10, 40, 15, canvas.height - 80);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '11px Courier New';
-            ctx.fillText("BAZA", 1, 30);
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.8 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.8, 1), mat);
+            body.position.y = 0.9;
+            group.add(body);
 
-            // 2. S.I. Nexus bazasi (O'ngda - Qizil)
-            ctx.fillStyle = '#ff0055';
-            ctx.fillRect(canvas.width - 25, 40, 15, canvas.height - 80);
-            ctx.fillText("NEXUS", canvas.width - 32, 30);
+            group.position.set(-25, 0, (Math.random() - 0.5) * 8);
+            scene.add(group);
 
-            // 3. Inson qo'shinlarini boshqarish
-            for (let i = humanUnits.length - 1; i >= 0; i--) {
-                let u = humanUnits[i];
-                u.x += u.speed;
-                
-                // Odam birligini chizish
-                ctx.fillStyle = u.type === 'mecha' ? '#10b981' : (u.type === 'hacker' ? '#a855f7' : '#3b82f6');
-                ctx.fillRect(u.x, u.y, u.type === 'mecha' ? 24 : 16, 16);
+            humans.push({ mesh: group, speed: 0.04, health: 150, power: 1.8 });
+        }
 
-                // Dushmanlar bilan to'qnashuvi
-                for (let j = aiUnits.length - 1; j >= 0; j--) {
-                    let a = aiUnits[j];
-                    if (Math.abs(u.x - a.x) < 20 && Math.abs(u.y - a.y) < 20) {
-                        a.health -= u.power;
-                        u.health -= 0.8;
-                        if (a.health <= 0) {
-                            aiUnits.splice(j, 1);
-                            score += 15;
+        // 3D Sun'iy Intellekt Robotlari (Qizil rangli tahdid)
+        function spawnRobot() {
+            const group = new THREE.Group();
+            const botMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x550000, metalness: 0.9 });
+            
+            // Robot tanasi
+            const body = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.5, 4), botMat);
+            body.rotation.x = Math.PI;
+            body.position.y = 0.75;
+            group.add(body);
+
+            group.position.set(25, 0, (Math.random() - 0.5) * 8);
+            scene.add(group);
+
+            robots.push({ mesh: group, speed: 0.06, health: 40 });
+        }
+
+        // --- 4. O'YIN ANIMATSIYA SIKLI ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Odamlarni harakatlantirish
+            for (let i = humans.length - 1; i >= 0; i--) {
+                let h = humans[i];
+                h.mesh.position.x += h.speed;
+
+                // Robotlar bilan urishish
+                for (let j = robots.length - 1; j >= 0; j--) {
+                    let r = robots[j];
+                    let dist = h.mesh.position.distanceTo(r.mesh.position);
+                    if (dist < 1.5) {
+                        r.health -= h.power;
+                        if (r.health <= 0) {
+                            scene.remove(r.mesh);
+                            robots.splice(j, 1);
+                            score += 10;
                         }
                     }
                 }
 
-                // Agar o'lsa yoki S.I. bazasiga yetib borsa
-                if (u.health <= 0 || u.x > canvas.width - 30) {
-                    humanUnits.splice(i, 1);
+                // Agar narigi tarafga o'tib ketsa
+                if (h.mesh.position.x > 25) {
+                    scene.remove(h.mesh);
+                    humans.splice(i, 1);
                 }
             }
 
-            // 4. S.I. dushmanlarini boshqarish
-            for (let j = aiUnits.length - 1; j >= 0; j--) {
-                let a = aiUnits[j];
-                a.x -= a.speed;
+            // Robotlarni harakatlantirish (Insonlar bazasiga qarab)
+            for (let j = robots.length - 1; j >= 0; j--) {
+                let r = robots[j];
+                r.mesh.position.x -= r.speed;
 
-                // Dushmanni chizish
-                ctx.fillStyle = a.type === 'heavy' ? '#ef4444' : '#f59e0b';
-                ctx.fillRect(a.x, a.y, 18, 16);
-
-                // Agar dushman inson bazasiga yetib kelsa
-                if (a.x <= 25) {
-                    baseHealth -= 6;
-                    aiUnits.splice(j, 1);
+                // Agar inson bazasiga (-25 ga) yetib kelsa
+                if (r.mesh.position.x < -24) {
+                    baseHealth -= 5;
+                    scene.remove(r.mesh);
+                    robots.splice(j, 1);
                     if (baseHealth <= 0) {
-                        alert("MAG'LUBIYAT! Sun'iy intellekt (NEXUS) insoniyatni egalladi.");
+                        alert("MAG'LUBIYAT! Sun'iy intellekt robotlari bazani egalladi.");
                         baseHealth = 100;
                         score = 0;
-                        humanUnits = [];
-                        aiUnits = [];
                     }
                 }
             }
 
             updateUI();
-            requestAnimationFrame(gameLoop);
+            renderer.render(scene, camera);
         }
 
-        gameLoop();
+        animate();
+
+        // Oyna o'zgarganda to'g'rilash
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
