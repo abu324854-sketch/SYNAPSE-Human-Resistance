@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER STRIKE: Human vs AI</title>
+    <title>CYBER STRIKE: Survival</title>
     <style>
         body {
             margin: 0;
@@ -21,8 +21,19 @@
             font-size: 20px;
             font-weight: bold;
             text-shadow: 0 0 10px #00ffff;
-            z-index: 10;
+            z-index: 20;
             pointer-events: none;
+        }
+
+        /* Ekranda qon sachrash effekti */
+        #blood-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 30%, rgba(180, 0, 0, 0.8) 90%);
+            opacity: 0;
+            transition: opacity 0.1s ease-in-out;
+            z-index: 15;
         }
 
         #crosshair {
@@ -32,7 +43,7 @@
             width: 20px;
             height: 20px;
             transform: translate(-50%, -50%);
-            z-index: 10;
+            z-index: 20;
             pointer-events: none;
         }
         #crosshair::before, #crosshair::after {
@@ -50,13 +61,13 @@
             transform: translate(-50%, -50%);
             color: white;
             text-align: center;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             border: 2px solid #ff0055;
-            padding: 20px;
+            padding: 25px;
             border-radius: 10px;
-            z-index: 20;
+            z-index: 30;
             cursor: pointer;
-            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.6);
         }
         h1 { color: #ff0055; margin-top: 0; }
     </style>
@@ -69,26 +80,26 @@
         ❤️ Jon: <span id="health">100</span> | 🤖 Yo'q qilindi: <span id="score">0</span>
     </div>
 
+    <!-- Qon effekti uchun qatlam -->
+    <div id="blood-overlay"></div>
+
     <div id="crosshair"></div>
 
     <div id="instructions">
-        <h1>CYBER STRIKE: FPS</h1>
+        <h1>CYBER STRIKE: SURVIVAL</h1>
         <p>O'yinni boshlash uchun ekranni bosing</p>
-        <p style="font-size: 12px; color: #9ca3af;">(Sichqoncha bilan nishonga oling, chap tugma orqali o'q uzing)</p>
+        <p style="font-size: 12px; color: #9ca3af;">(Robotlar sizga yetib kelishiga yo'l qo'ymang!)</p>
     </div>
 
     <script>
         let scene, camera, renderer;
         let score = 0, health = 100;
         let robots = [];
-        let bullets = [];
         let isPlaying = false;
 
-        // Kamera aylanishi uchun o'zgaruvchilar
         let mouseX = 0, mouseY = 0;
-        let targetRotationX = 0, targetRotationY = 0;
-
         const instructions = document.getElementById('instructions');
+        const bloodOverlay = document.getElementById('blood-overlay');
 
         instructions.addEventListener('click', () => {
             instructions.style.display = 'none';
@@ -107,12 +118,10 @@
             if (!isPlaying) return;
             mouseX -= e.movementX * 0.003;
             mouseY -= e.movementY * 0.003;
-            
-            // Yuqori va pastga qarashni cheklash
             mouseY = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, mouseY));
         });
 
-        // O'q otish (Sichqoncha bosilganda)
+        // O'q otish
         window.addEventListener('mousedown', () => {
             if (!isPlaying) return;
             shoot();
@@ -146,7 +155,6 @@
             floor.position.z = -40;
             scene.add(floor);
 
-            // Devorlar
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x1f2937 });
             const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 10, 100), wallMat);
             leftWall.position.set(-15, 5, -40);
@@ -156,50 +164,48 @@
             rightWall.position.set(15, 5, -40);
             scene.add(rightWall);
 
-            // Har 2 sekundda robot chiqarish
-            setInterval(spawnRobot, 2000);
+            // Robotlar tezroq chiqib keladi
+            setInterval(spawnRobot, 1800);
 
             animate();
         }
 
-        // Robot yaratish (Dushman)
         function spawnRobot() {
             if (!isPlaying) return;
             
             const group = new THREE.Group();
             
-            // Robot tanasi (Qizil va qo'rqinchli)
             const botMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x330000, metalness: 0.8 });
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2, 0.8), botMat);
             body.position.y = 1;
             group.add(body);
 
-            // Robot ko'zlari (Yaltiroq)
             const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
             const eye = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.2), eyeMat);
             eye.position.set(0, 1.6, 0.41);
             group.add(eye);
 
-            // Tasodifiy yo'nalishda paydo bo'lish
             let rx = (Math.random() - 0.5) * 24;
             let rz = -Math.random() * 40 - 20;
             group.position.set(rx, 0, rz);
 
             scene.add(group);
-            robots.push({ mesh: group, zSpeed: 0.08 });
+            robots.push({ mesh: group, zSpeed: 0.1 });
         }
 
-        // O'q uzish funksiyasi
-        function shoot() {
-            // Markazga qarab o'q yo'naltiramiz
-            const raycaster = new THREE.Raycaster();
-            const center = new THREE.Vector2(0, 0);
-            raycaster.setFromCamera(center, camera);
+        function triggerBloodEffect() {
+            bloodOverlay.style.opacity = '1';
+            setTimeout(() => {
+                bloodOverlay.style.opacity = '0';
+            }, 250);
+        }
 
+        function shoot() {
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycaster.intersectObjects(scene.children, true);
 
             if (intersects.length > 0) {
-                // Urilgan obyekt robotning qismimi ekanligini tekshiramiz
                 for (let i = robots.length - 1; i >= 0; i--) {
                     let r = robots[i];
                     if (intersects[0].object.parent === r.mesh || intersects[0].object === r.mesh) {
@@ -213,29 +219,28 @@
             }
         }
 
-        // Asosiy o'yin sikli
         function animate() {
             requestAnimationFrame(animate);
 
             if (isPlaying) {
-                // Kamerani sichqoncha bo'yicha aylantirish
                 camera.rotation.y = mouseX;
                 camera.rotation.x = mouseY;
 
-                // Robotlarni o'yinchiga qarab yurishi
                 for (let i = robots.length - 1; i >= 0; i--) {
                     let r = robots[i];
                     r.mesh.position.z += r.zSpeed;
 
-                    // Agar robot o'yinchiga yaqinlashib kelsa (-1.5 masofa)
-                    if (r.mesh.position.z > -1.5 && Math.abs(r.mesh.position.x - camera.position.x) < 1.5) {
-                        health -= 10;
+                    // Robot o'yinchiga yetib kelsa (yeb qo'ysa)
+                    if (r.mesh.position.z > -0.8 && Math.abs(r.mesh.position.x - camera.position.x) < 1.5) {
+                        health -= 20;
                         document.getElementById('health').innerText = health;
+                        triggerBloodEffect(); // Qon chiqishi
+
                         scene.remove(r.mesh);
                         robots.splice(i, 1);
 
                         if (health <= 0) {
-                            alert("O'YIN TUGADI! Sizni robotlar yengdi. Natija: " + score);
+                            alert("HALOK BO'LDINGIZ! Robotlar sizni yeb qo'ydi. Natija: " + score);
                             health = 100;
                             score = 0;
                             document.getElementById('health').innerText = health;
